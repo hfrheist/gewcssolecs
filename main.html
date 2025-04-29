@@ -5,12 +5,34 @@
     <title>Vehicle Data Viewer</title>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        table { width: 100%; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        #controls {
+            margin-bottom: 15px;
+        }
+        label, select, input {
+            margin-right: 10px;
+        }
+        table.dataTable {
+            background-color: white;
+        }
     </style>
 </head>
 <body>
-    <h2>Vehicle Data</h2>
+    <h2>Vehicle Data Viewer</h2>
+
+    <div id="controls">
+        <label for="columnSelect">Search in column:</label>
+        <select id="columnSelect"></select>
+        <input type="text" id="columnSearch" placeholder="Type to search this column">
+    </div>
+
     <table id="vehicleTable" class="display">
         <thead></thead>
         <tbody></tbody>
@@ -21,7 +43,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <script>
-        // Load CSV file via AJAX
+        let dataTable;
+
         fetch('awecsed.csv')
             .then(response => {
                 if (!response.ok) throw new Error("File not found or cannot be read.");
@@ -33,12 +56,29 @@
                     skipEmptyLines: true,
                     complete: function (results) {
                         const data = results.data;
-                        const columns = Object.keys(data[0]).map(col => ({ title: col }));
+                        const columns = Object.keys(data[0]);
 
-                        $('#vehicleTable').DataTable({
-                            data: data.map(row => Object.values(row)),
-                            columns: columns,
+                        // Build DataTable
+                        dataTable = $('#vehicleTable').DataTable({
+                            data: data.map(row => columns.map(col => row[col])),
+                            columns: columns.map(col => ({ title: col })),
                             responsive: true
+                        });
+
+                        // Populate column selector
+                        const columnSelect = document.getElementById('columnSelect');
+                        columns.forEach((col, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.text = col;
+                            columnSelect.appendChild(option);
+                        });
+
+                        // Handle column-specific search
+                        document.getElementById('columnSearch').addEventListener('keyup', function () {
+                            const colIndex = document.getElementById('columnSelect').value;
+                            const searchTerm = this.value;
+                            dataTable.column(colIndex).search(searchTerm).draw();
                         });
                     }
                 });
